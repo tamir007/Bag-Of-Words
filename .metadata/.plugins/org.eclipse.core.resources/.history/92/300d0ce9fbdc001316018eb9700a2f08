@@ -1,0 +1,432 @@
+public class AvlTree {
+
+	public static void main(String[] args) {
+		AvlTree myTree = new AvlTree();
+		System.out.println(myTree.add(5));
+		System.out.println(myTree.add(10));
+		System.out.println(myTree.add(12));
+		System.out.println(myTree.root.value);
+		System.out.println(myTree.root.right.value);
+		System.out.println(myTree.root.right.right.value);
+
+	}
+
+	Node root;
+	private int size;
+
+	public enum FatherSonRelation {
+		LEFT, RIGHT, ROOT
+	}
+
+	public class Node {
+		private int value;
+		private Node left;
+		private Node right;
+		private Node father;
+		private int height;
+		private int heightDiff;
+
+		public Node(int newValue) {
+			value = newValue;
+			left = null;
+			right = null;
+			father = null;
+			height = 0;
+
+		}
+		
+		public int getHeightDiff()
+		{
+			int rightHeight  =  -1;
+			int leftHeight = -1;
+			if(this.right != null) rightHeight = this.right.getHeight();
+			if(this.left != null) leftHeight = this.left.getHeight();
+			if(this.right == null && this.left == null) return 0;
+			return (leftHeight - rightHeight);
+		}
+		
+		public int getHeight()
+		{
+			int rightHeight  = 0;
+			int leftHeight = 0;
+			if(this.right != null) rightHeight = this.right.getHeight();
+			if(this.left != null) leftHeight = this.left.getHeight();
+			if(this.right == null && this.left == null) return 0;
+			return ((Math.max(leftHeight, rightHeight)) + 1);
+		}
+
+	}
+
+	/**
+	 * A default constructor
+	 */
+	public AvlTree() {
+		root = null;
+		size = 0;
+
+	}
+
+	/**
+	 * A data constructor a constructor that builds the tree by adding the
+	 * elements in the input array one-by-one. If the same value app ears twice
+	 * (or more) in the list, it is ignored.
+	 * 
+	 * @param Data
+	 *            values to add to tree
+	 */
+	public AvlTree(int[] Data) {
+		for (int i = 0; i < Data.length; i++) {
+			this.add(Data[i]);
+		}
+	}
+
+	/**
+	 * A copy constructor a constructor that builds the tree a copy of an
+	 * existing tree.
+	 * 
+	 * @param tree
+	 *            an AvlTree
+	 */
+	public AvlTree(AvlTree tree) {
+
+	}
+
+	/**
+	 * Add a new node with key newValue into the tree.
+	 * 
+	 * @param newValue
+	 *            new value to add to the tree.
+	 * @return false if newValue already exist in the tree
+	 */
+	public boolean add(int newValue) {
+
+		
+		Node newNode = new Node(newValue);
+
+		FatherSonRelation relation = FatherSonRelation.ROOT;
+		// if list is empty
+		if (root == null) {
+			root = newNode;
+			return true;
+		}
+		// if list isnt empty
+		Node temp = root;
+
+		// first adding the node at the right spot
+		while (temp != null) {
+
+			if (newNode.value == temp.value) {
+				return false;
+			} else if (newNode.value < temp.value) {
+				relation = FatherSonRelation.LEFT;
+				newNode.father = temp;
+				temp = temp.left;
+				continue;
+			} else if (newNode.value > temp.value) {
+				relation = FatherSonRelation.RIGHT;
+				newNode.father = temp;
+				temp = temp.right;
+				continue;
+			}
+		}
+		switch (relation) {
+		case LEFT:
+			newNode.father.left = newNode;
+			break;
+		case RIGHT:
+			newNode.father.right = newNode;
+			break;
+		default:
+			break;
+		}
+
+		// updates heights and differences, and fixes problems
+		// if needed
+
+		determineRotation(newNode.father);
+		this.size++;
+		return true;
+
+	}
+
+//	/*
+//	 * updates heights, and height differences from given node, all the way to
+//	 * the top, if difference arr greater than 2, or less than -2, calls for
+//	 * rotation
+//	 * 
+//	 * @param node node to start correction from
+//	 */
+//	private void checkHeights(Node node) {
+//
+//		// if the node is a root
+//		if (node == root) {
+//			if (node.heightDiff == 2 || node.heightDiff == -2) {
+//				root = determineRotation(node);
+//			}
+//			return;
+//		}
+//		// if the node is not a root
+//		
+//		checkHeights(determineRotation(node.father));
+//
+//	}
+
+	/*
+	 * Determines what to do with given heightDiff, and if necessary to call
+	 * rotation functions
+	 */
+	private Node determineRotation(Node node) {
+		Node newSubRoot = node;
+		// Check what kind of rotation to make
+		System.out.println("Number: " + node.value);
+		System.out.println("Height : " + node.getHeight() + " HeightDiff:  " +  node.getHeightDiff());
+		if (node.getHeightDiff() == 2) {
+			if (node.left != null && node.left.getHeightDiff() == -1) {
+				node.left = rotateLeft(node.left);
+			}
+			newSubRoot = rotateRight(node);
+		}
+		if (node.getHeightDiff() == -2) {
+			if (node.right != null && node.right.getHeightDiff() == 1) {
+				
+				node.right = rotateRight(node.right);
+			}
+			System.out.println("one rotations");
+			newSubRoot = rotateLeft(node);
+		} else if (node.getHeightDiff() == -1 || node.getHeightDiff() == 1) {
+			if(node == root)
+			{			
+				return root;
+			}
+			return determineRotation(node.father);
+		}
+		else if(node.getHeightDiff() == 0)
+		{
+			System.out.println("im here");
+			return node.father;
+		}
+
+		
+		return newSubRoot;
+	}
+
+	/*
+	 * rotates given node Right
+	 * 
+	 * @param node to be rotated Right
+	 * 
+	 * @return new Root of rotated tree
+	 */
+	private Node rotateRight(Node node) {
+		// Let P be Q's left child.
+		// Set Q's left child to be P's right child.
+		// Set P's right child to be Q.
+		//
+		Node temp = node.left;
+		node.left = temp.right;
+		temp.right = node;
+
+		return temp;
+
+	}
+
+	/*
+	 * rotates given node Left
+	 * 
+	 * @param node to be rotated Left
+	 * 
+	 * @return new Root of rotated tree
+	 */
+	private Node rotateLeft(Node node) {
+
+		Node temp = node.right;
+		node.right = temp.left;
+		temp.left = node;
+
+		return temp;
+	}
+
+	/**
+	 * Does tree contain a given input value.
+	 * 
+	 * @param val
+	 *            value to search for.
+	 * @return if value is found in the tree, return the depth of its node (
+	 *         where 0 is the root) Otherwise return -1.
+	 */
+	public int contains(int searchVal) {
+		if (root == null) {
+			return -1;
+		}
+		return containsHelper(root, searchVal, 0);
+
+	}
+
+	private int containsHelper(Node node, int searchVal, int depth) {
+
+		if (searchVal < node.value) {
+			if (node.left == null) {
+				return -1;
+			}
+			return containsHelper(node.left, searchVal, depth + 1);
+		} else if (searchVal > node.value) {
+			if (node.right == null) {
+				return -1;
+			}
+			return containsHelper(node.right, searchVal, depth + 1);
+		}
+
+		return depth;
+
+	}
+
+	/**
+	 * Remove node from tree if it exists
+	 * 
+	 * @param toDelete
+	 *            value to delete
+	 * @return true iff toDelete is found and deleted
+	 */
+	public boolean delete(int toDelete) {
+		Node temp = root;
+		Node replacementNode = null;
+		Node startBalance = null;
+		FatherSonRelation relation = FatherSonRelation.ROOT;
+		// find Node to be deleted
+		while (temp != null) {
+			if (temp.value == toDelete) {
+				// if node has 2 children
+				if (temp.left != null && temp.right != null) {
+					replacementNode = maxNodeInSubTree(temp.left);
+					startBalance = replacementNode.father;
+					replacementNode.left = temp.left;
+					replacementNode.right = temp.right;
+					replacementNode.father = temp.father;
+					temp.left.father = temp.father;
+					// checks how to connect father new childs
+					// to the replecmentNode
+					switch (relation) {
+					case LEFT:
+						temp.father.left = replacementNode.left;
+						break;
+					case RIGHT:
+						temp.father.right = replacementNode.left;
+						break;
+					default:
+						break;
+					}
+					checkHeights(startBalance);
+					this.size--;
+					return true;
+				}
+				// if node has only a left child
+				else if (temp.left != null && temp.right == null) {
+
+					temp.left.father = temp.father;
+					// checks how to connect father new childs
+					// to the replecmentNode
+					switch (relation) {
+					case LEFT:
+						temp.father.left = temp.left;
+						break;
+					case RIGHT:
+						temp.father.right = temp.left;
+						break;
+					default:
+						break;
+					}
+
+					checkHeights(temp.left);
+					this.size--;
+					return true;
+
+				}
+				// if node has only a right child
+				else if (temp.left == null && temp.right != null) {
+					temp.right.father = temp.father;
+					// checks how to connect father new childs
+					// to the replecmentNode
+					switch (relation) {
+					case LEFT:
+						temp.father.left = temp.right;
+						break;
+					case RIGHT:
+						temp.father.right = temp.right;
+						break;
+					default:
+						break;
+					}
+
+					checkHeights(temp.right);
+					this.size--;
+					return true;
+				}
+
+			} else if (temp.value < toDelete) {
+				relation = FatherSonRelation.RIGHT;
+				temp = temp.right;
+			} else if (temp.value > toDelete) {
+				relation = FatherSonRelation.LEFT;
+				temp = temp.left;
+			}
+
+		}
+		return false;
+	}
+
+	/*
+	 * returns maximum node in given sub-Tree
+	 */
+	private Node maxNodeInSubTree(Node node) {
+		// check if right node exists
+		if (node.right != null) {
+			if (node.right.right == null) {
+				return node.right;
+			} else {
+				return maxNodeInSubTree(node.right);
+			}
+		}
+		// if right node doesnt exist, "this" node is the greatest
+		return node;
+	}
+
+	private Node minNodeInSubTree(Node node) {
+		// check if right node exists
+		if (node.left != null) {
+			if (node.left.left == null) {
+				return node.left;
+			} else {
+				return maxNodeInSubTree(node.left);
+			}
+		}
+		// if right node doesnt exist, "this" node is the greatest
+		return node;
+	}
+
+	/**
+	 * @return number of nodes in the tree
+	 */
+	public int size() {
+		return this.size;
+	}
+
+	/**
+	 * @return iterator to the Avl Tree. The returned iterator can pass over the
+	 *         tree nodes in ascending order
+	 */
+	// public Iterator<Integer> iterator() {
+	//
+	// }
+	//
+	// /**
+	// * This methods calculates the minimum number of nodes in an Avl tree of
+	// * height h
+	// *
+	// * @param h
+	// * height of the tree(a non-negative number)
+	// * @return minimum number of nodes in the tree
+	// */
+	// public static int findMinNodes(int h) {
+	//
+	// }
+}
